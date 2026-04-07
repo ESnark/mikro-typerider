@@ -1,5 +1,5 @@
 {
-  "name": "@esnark/mikro-mapped-types",
+  "name": "@esnark/mikro-typerider",
   "version": "0.1.0",
   "type": "module",
   "exports": {
