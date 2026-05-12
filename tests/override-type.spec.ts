@@ -186,17 +186,44 @@ describe('OverrideType', () => {
     expect(meta2.properties.data.customType).toBeUndefined();
   });
 
-  it('silently skips overrides for non-existent properties', () => {
+  it('throws when overridden property does not exist on parent', () => {
+    expect(() =>
+      OverrideType(ParentEntity, {
+        nonExistent: new TestRecordType(),
+      } as any),
+    ).toThrow(/property 'nonExistent' does not exist on parent entity 'ParentEntity'/);
+  });
+
+  it('clears runtimeType and columnTypes on overridden property so discovery recomputes them', () => {
     const Derived = OverrideType(ParentEntity, {
-      nonExistent: new TestRecordType(),
-    } as any);
+      data: new TestRecordType(),
+    });
 
     const derivedPath = (Derived as any)[pathSymbol];
     const childMeta = MetadataStorage.getMetadata(Derived.name, derivedPath);
 
-    // Should not create a property that doesn't exist on parent
-    expect(childMeta.properties.nonExistent).toBeUndefined();
-    // Existing properties should still be there
-    expect(childMeta.properties.idx).toBeDefined();
+    // Stale parent values must be cleared on overridden props
+    expect(childMeta.properties.data.runtimeType).toBeUndefined();
+    expect(childMeta.properties.data.columnTypes).toBeUndefined();
+
+    // Non-overridden props keep their copied values
+    expect(childMeta.properties.idx.runtimeType).toBe('number');
+    expect(childMeta.properties.idx.columnTypes).toEqual(['int']);
+  });
+
+  it('deep copies nested array fields so child mutations do not leak to parent', () => {
+    const Derived = OverrideType(ParentEntity, {
+      data: new TestRecordType(),
+    });
+
+    const derivedPath = (Derived as any)[pathSymbol];
+    const childMeta = MetadataStorage.getMetadata(Derived.name, derivedPath);
+    const parentMeta = MetadataStorage.getMetadata(ParentEntity.name, FAKE_PATH);
+
+    // fieldNames must be a different array reference
+    expect(childMeta.properties.idx.fieldNames).not.toBe(parentMeta.properties.idx.fieldNames);
+    // Mutating child's array must not affect parent
+    childMeta.properties.idx.fieldNames.push('mutated');
+    expect(parentMeta.properties.idx.fieldNames).toEqual(['idx']);
   });
 });

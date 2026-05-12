@@ -16,10 +16,10 @@ Code generators produce entity classes with generic types like `string` or `unkn
 ```ts
 import { Entity } from '@mikro-orm/core';
 import { OverrideType } from '@esnark/mikro-typerider';
-import { ShopOrder } from '@imwebme/mikro-models/doznut_shop';
+import { ShopOrder } from './generated/shop-order.js';
 import { PhpSerializedType } from './types/php-serialized-type.js';
 
-@Entity({ tableName: 'shop_order', schema: 'doznut_shop' })
+@Entity({ tableName: 'shop_order' })
 class AppShopOrder extends OverrideType(ShopOrder, {
   refundData: new PhpSerializedType<Record<string, unknown>>(),
   payBankInfo: new PhpSerializedType<BankInfo>(),

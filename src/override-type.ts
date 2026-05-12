@@ -24,17 +24,33 @@ export function OverrideType<T, O extends OverrideMap>(
     const childMeta = MetadataStorage.getMetadata(DerivedClass.name, parentPath);
 
     for (const [name, prop] of Object.entries(parentMeta.properties ?? {})) {
-      childMeta.properties[name] = { ...prop };
+      childMeta.properties[name] = {
+        ...prop,
+        fieldNames: prop.fieldNames ? [...prop.fieldNames] : prop.fieldNames,
+        columnTypes: prop.columnTypes ? [...prop.columnTypes] : prop.columnTypes,
+        items: prop.items ? [...prop.items] : prop.items,
+        joinColumns: prop.joinColumns ? [...prop.joinColumns] : prop.joinColumns,
+        inverseJoinColumns: prop.inverseJoinColumns
+          ? [...prop.inverseJoinColumns]
+          : prop.inverseJoinColumns,
+      };
     }
 
     childMeta.abstract = true;
 
     for (const [propName, customType] of Object.entries(overrides)) {
       const prop = childMeta.properties[propName];
-      if (prop) {
-        prop.customType = customType;
-        prop.type = customType.constructor.name;
+      if (!prop) {
+        throw new Error(
+          `OverrideType: property '${propName}' does not exist on parent entity '${parentClass.name}'.`,
+        );
       }
+      prop.customType = customType;
+      prop.type = customType.constructor.name;
+      // discovery.initCustomType uses ??= for runtimeType/columnTypes; clear stale parent values
+      // so they get recomputed from the new customType.
+      delete (prop as Partial<typeof prop>).runtimeType;
+      delete (prop as Partial<typeof prop>).columnTypes;
     }
   }
 
